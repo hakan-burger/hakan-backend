@@ -1,0 +1,13 @@
+# Configuración del servicio en Render (https://render.com).
+# El despliegue lo dispara GitHub Actions cuando las pruebas pasan (ver .github/workflows/ci-cd.yml).
+services:
+  - type: web
+    name: hakan-backend
+    runtime: docker
+    plan: free
+    branch: main
+    autoDeploy: false
+    healthCheckPath: /api/categorias
+    envVars:
+      - key: APP_CORS_ORIGENES
+        value: http://localhost:5173

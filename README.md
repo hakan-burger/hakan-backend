@@ -53,6 +53,27 @@ mvnw spring-boot:run -Dspring-boot.run.profiles=postgres
 
 Los errores responden texto simple (400 = dato inválido, 404 = no existe) para que el frontend lo muestre tal cual.
 
+## Despliegue (Render + GitHub Actions)
+
+El workflow `.github/workflows/ci-cd.yml` hace lo siguiente:
+
+- En cada push o pull request a `main` o `development`: compila y ejecuta las pruebas.
+- En cada push a `main` (por ejemplo, al hacer merge de un PR): si las pruebas pasan, despliega en Render.
+
+Configuración (una sola vez):
+
+1. En https://render.com entrar con la cuenta de GitHub → **New → Web Service** → elegir el repo `hakan-backend`.
+2. Runtime **Docker**, rama `main`, plan **Free**. En *Advanced*: **Auto-Deploy: No** (despliega GitHub Actions)
+   y **Health Check Path** `/api/categorias`.
+3. Variable de entorno `APP_CORS_ORIGENES` = direcciones del frontend separadas por coma
+   (ej. `http://localhost:5173,https://hakan-frontend.vercel.app`).
+4. En Render: **Settings → Deploy Hook** → copiar la URL.
+5. En GitHub: **Settings → Secrets and variables → Actions → New repository secret**
+   con el nombre `RENDER_DEPLOY_HOOK_URL` y la URL del paso 4.
+
+En el plan gratuito el servicio se apaga tras 15 minutos sin uso; la primera llamada después tarda unos 50 segundos.
+Como usa H2 en memoria, los datos de prueba vuelven a su estado inicial cada vez que se reinicia.
+
 ## Estructura (por módulo y capa, arquitectura MVC)
 
 ```

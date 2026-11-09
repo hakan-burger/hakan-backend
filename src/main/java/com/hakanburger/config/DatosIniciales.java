@@ -3,6 +3,7 @@ package com.hakanburger.config;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
@@ -27,6 +28,15 @@ import com.hakanburger.pedidos.service.SesionService;
  */
 @Component
 public class DatosIniciales implements CommandLineRunner {
+
+    /** Fotos servidas por el frontend (hakan-frontend/public/img/productos). */
+    private static final Map<String, String> FOTOS = Map.ofEntries(
+            Map.entry("Hakan Royal", "hakan-royal"), Map.entry("Clásica", "clasica"),
+            Map.entry("Hawaiana", "hawaiana"), Map.entry("Hamburguesa BBQ", "hamburguesa-bbq"),
+            Map.entry("Pollo Crispy", "pollo-crispy"), Map.entry("Alitas BBQ (6 und.)", "alitas-bbq"),
+            Map.entry("Salchipapa Hakan", "salchipapa"), Map.entry("Shawarma de pollo", "shawarma-pollo"),
+            Map.entry("Limonada Frozen", "limonada-frozen"), Map.entry("Chicha morada 1 L", "chicha-morada"),
+            Map.entry("Gaseosa 500 ml", "gaseosa"));
 
     private final RolRepository roles;
     private final UsuarioRepository usuarios;
@@ -135,6 +145,7 @@ public class DatosIniciales implements CommandLineRunner {
             String precio, String etiqueta, boolean disponible) {
         Producto p = new Producto(categoria, nombre, descripcion, precio);
         p.setEtiqueta(etiqueta);
+        p.setImagenUrl(foto(nombre));
         p.setDestacado("Más pedida".equals(etiqueta));
         p.setDisponible(disponible);
         p.getOpciones().add(new OpcionProducto(p, "Individual", "0.00", true));
@@ -147,7 +158,13 @@ public class DatosIniciales implements CommandLineRunner {
     private void simple(Categoria categoria, String nombre, String descripcion, String precio, String etiqueta) {
         Producto p = new Producto(categoria, nombre, descripcion, precio);
         p.setEtiqueta(etiqueta);
+        p.setImagenUrl(foto(nombre));
         productos.save(p);
+    }
+
+    private static String foto(String nombre) {
+        String archivo = FOTOS.get(nombre);
+        return archivo == null ? null : "/img/productos/" + archivo + ".webp";
     }
 
     private static DireccionDto direccion(String nombre, String direccion, String distrito, String referencia, Zona zona) {

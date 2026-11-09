@@ -9,6 +9,12 @@ import org.springframework.data.repository.query.Param;
 
 import com.hakanburger.pedidos.model.Producto;
 
+/**
+ * Patrón Repository: es la única puerta para leer y guardar productos en la base de datos.
+ * Los servicios piden "los productos de una categoría" o "los agotados del carrito" sin
+ * escribir SQL ni saber si detrás está H2 o PostgreSQL. Spring Data JPA genera la clase
+ * que implementa esta interfaz (save, findById, findAll, etc.).
+ */
 public interface ProductoRepository extends JpaRepository<Producto, Long> {
 
     /** Carta: filtra por categoría (opcional) y por texto en el nombre. */

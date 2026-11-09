@@ -10,4 +10,4 @@ services:
     healthCheckPath: /api/categorias
     envVars:
       - key: APP_CORS_ORIGENES
-        value: http://localhost:5173
+        value: http://localhost:5173,https://hakan-frontend.onrender.com

@@ -76,4 +76,33 @@ class PedidoServiceTests {
                 new PagoDto(MetodoPago.POS, null, null, TipoTarjeta.CREDITO));
         assertThrows(ReglaNegocioException.class, () -> pedidos.registrar(datos));
     }
+
+    private static NuevoPedidoRequest recojoConPos(List<ItemCarritoDto> items) {
+        return new NuevoPedidoRequest(items,
+                new EntregaDto(Modalidad.RECOJO, null, "987654321"),
+                BOLETA,
+                new PagoDto(MetodoPago.POS, null, null, TipoTarjeta.CREDITO));
+    }
+
+    @Test
+    void aceptaPedidoJustoEnLosLimites() {
+        // 20 del mismo producto (máximo por producto) + 10 de otro = 30 (máximo por pedido)
+        PedidoDto p = pedidos.registrar(recojoConPos(List.of(item(1, 20, null, List.of()), item(2, 10, null, List.of()))));
+        assertEquals(EstadoPedido.REGISTRADO, p.estado());
+    }
+
+    @Test
+    void rechazaMasDe30ProductosPorPedido() {
+        NuevoPedidoRequest datos = recojoConPos(List.of(item(1, 20, null, List.of()), item(2, 11, null, List.of())));
+        ReglaNegocioException e = assertThrows(ReglaNegocioException.class, () -> pedidos.registrar(datos));
+        assertEquals("Puedes pedir como máximo 30 productos por pedido. Tu carrito tiene 31", e.getMessage());
+    }
+
+    @Test
+    void rechazaMasDe20DelMismoProductoAunqueEsteEnVariasLineas() {
+        // el mismo producto repetido en dos líneas (por ejemplo, con distinto tamaño) suma 21
+        NuevoPedidoRequest datos = recojoConPos(List.of(item(2, 15, null, List.of()), item(2, 6, null, List.of())));
+        ReglaNegocioException e = assertThrows(ReglaNegocioException.class, () -> pedidos.registrar(datos));
+        assertEquals(true, e.getMessage().startsWith("Puedes pedir como máximo 20 unidades de"));
+    }
 }

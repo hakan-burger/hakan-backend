@@ -3,7 +3,9 @@ package com.hakanburger.pedidos.service;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,6 +23,11 @@ import com.hakanburger.pedidos.service.pago.SelectorPago;
 @Service
 @Transactional(readOnly = true)
 public class PedidoService {
+
+    /** Máximo de unidades de un mismo producto por pedido (sumando todas sus líneas del carrito). */
+    public static final int MAXIMO_POR_PRODUCTO = 20;
+    /** Máximo de unidades en total por pedido. */
+    public static final int MAXIMO_POR_PEDIDO = 30;
 
     private final PedidoRepository pedidos;
     private final CatalogoService catalogo;
@@ -65,6 +72,7 @@ public class PedidoService {
         }
 
         // 2. Productos
+        validarCantidades(datos.items());
         BigDecimal subtotal = BigDecimal.ZERO;
         BigDecimal descuento = BigDecimal.ZERO;
         for (ItemCarritoDto item : datos.items()) {
@@ -100,6 +108,29 @@ public class PedidoService {
         String serie = pedido.getComprobante().getTipo() == TipoComprobante.FACTURA ? "F001-" : "B001-";
         pedido.getComprobante().setSerieNumero(serie + String.format("%08d", pedido.getId()));
         return pedido;
+    }
+
+    /**
+     * Topes de cantidad. Se suman todas las líneas del mismo producto: así no se puede pasar el
+     * máximo agregando el mismo producto varias veces (por ejemplo, con otro tamaño o adicional).
+     */
+    private void validarCantidades(List<ItemCarritoDto> items) {
+        int total = items.stream().mapToInt(ItemCarritoDto::cantidad).sum();
+        if (total > MAXIMO_POR_PEDIDO) {
+            throw new ReglaNegocioException("Puedes pedir como máximo " + MAXIMO_POR_PEDIDO
+                    + " productos por pedido. Tu carrito tiene " + total);
+        }
+        Map<Long, Integer> porProducto = new LinkedHashMap<>();
+        for (ItemCarritoDto item : items) {
+            porProducto.merge(item.producto().id(), item.cantidad(), Integer::sum);
+        }
+        porProducto.forEach((id, cantidad) -> {
+            if (cantidad > MAXIMO_POR_PRODUCTO) {
+                String nombre = catalogo.obtenerProducto(id).nombre();
+                throw new ReglaNegocioException("Puedes pedir como máximo " + MAXIMO_POR_PRODUCTO
+                        + " unidades de \"" + nombre + "\" por pedido");
+            }
+        });
     }
 
     private DetallePedido armarDetalle(ItemCarritoDto item) {

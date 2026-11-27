@@ -16,6 +16,7 @@ public record PedidoDto(
         PagoDto pago,
         boolean pagoVerificado,
         TotalesDto totales,
-        EstadoPedido estado
+        EstadoPedido estado,
+        LocalDateTime fechaEstado // cuándo pasó al estado actual (pantalla 27: hora de salida a reparto)
 ) {
 }

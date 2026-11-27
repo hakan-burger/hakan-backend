@@ -1,5 +1,6 @@
 package com.hakanburger.pedidos.dto;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import com.hakanburger.delivery.dto.DeliveryMapper;
@@ -62,6 +63,12 @@ public final class PedidoMapper {
                 new PagoDto(pg.getMetodo(), pg.getNumeroOperacion(), pg.getMontoEntregado(), pg.getTipoTarjeta()),
                 pg.getEstado() == EstadoPago.CONFIRMADO,
                 new TotalesDto(p.getSubtotal(), p.getDescuento(), p.getCostoDelivery(), p.getTotal()),
-                p.getEstado());
+                p.getEstado(),
+                fechaEstado(p));
+    }
+
+    /** Hora del último cambio de estado; si no hay historial, la fecha de registro. */
+    private static LocalDateTime fechaEstado(Pedido p) {
+        return p.getHistorial().isEmpty() ? p.getFechaRegistro() : p.getHistorial().get(p.getHistorial().size() - 1).getFechaHora();
     }
 }

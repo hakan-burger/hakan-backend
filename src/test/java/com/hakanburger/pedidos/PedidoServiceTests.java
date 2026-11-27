@@ -76,4 +76,41 @@ class PedidoServiceTests {
                 new PagoDto(MetodoPago.POS, null, null, TipoTarjeta.CREDITO));
         assertThrows(ReglaNegocioException.class, () -> pedidos.registrar(datos));
     }
+
+    @Test
+    void flujoCompletoDeDeliveryHastaEntregado() {
+        DireccionDto casa = new DireccionDto(999999L, "Casa", "Jr. Prueba 123", "Santa Clara, Ate", null,
+                new ZonaDto("A", null, null, null));
+        PedidoDto p = pedidos.registrar(new NuevoPedidoRequest(
+                List.of(item(2, 1, null, List.of())),
+                new EntregaDto(Modalidad.DELIVERY, casa, "987654321"),
+                BOLETA,
+                new PagoDto(MetodoPago.POS, null, null, TipoTarjeta.CREDITO)));
+
+        // atención -> cocina -> despacho (pantalla 26) -> entregado (pantalla 27)
+        for (EstadoPedido e : List.of(EstadoPedido.EN_PREPARACION, EstadoPedido.LISTO, EstadoPedido.EN_CAMINO)) {
+            pedidos.cambiarEstado(p.id(), e);
+        }
+        PedidoDto enCamino = pedidos.obtener(p.id());
+        assertEquals(EstadoPedido.EN_CAMINO, enCamino.estado());
+        assertEquals(true, enCamino.fechaEstado() != null && !enCamino.fechaEstado().isBefore(enCamino.fecha()));
+
+        pedidos.verificarPago(p.id());                       // el repartidor cobró con POS
+        pedidos.cambiarEstado(p.id(), EstadoPedido.ENTREGADO);
+        PedidoDto entregado = pedidos.obtener(p.id());
+        assertEquals(EstadoPedido.ENTREGADO, entregado.estado());
+        assertEquals(true, entregado.pagoVerificado());
+    }
+
+    @Test
+    void unRecojoNoSaleAReparto() {
+        PedidoDto p = pedidos.registrar(new NuevoPedidoRequest(
+                List.of(item(2, 1, null, List.of())),
+                new EntregaDto(Modalidad.RECOJO, null, "987654321"),
+                BOLETA,
+                new PagoDto(MetodoPago.POS, null, null, TipoTarjeta.CREDITO)));
+        pedidos.cambiarEstado(p.id(), EstadoPedido.EN_PREPARACION);
+        pedidos.cambiarEstado(p.id(), EstadoPedido.LISTO);
+        assertThrows(ReglaNegocioException.class, () -> pedidos.cambiarEstado(p.id(), EstadoPedido.EN_CAMINO));
+    }
 }
